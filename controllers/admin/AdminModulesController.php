@@ -135,6 +135,7 @@ class AdminModulesControllerCore extends AdminController
 						if ($xmlModule->attributes() == 'partner' && $key == 'name')
 							$this->list_partners_modules[] = (string)$value;
 					}
+
 	}
 
 	public function checkCategoriesNames($a, $b)
@@ -693,9 +694,11 @@ class AdminModulesControllerCore extends AdminController
 			}
 
 			$module_errors = array();
+			$module_to_update = array();
 			if (isset($modules))
 				foreach ($modules as $name)
 				{
+					$module_to_update[$name] = null;
 					$full_report = null;
 					// If Addons module, download and unzip it before installing it
 					if (!file_exists(_PS_MODULE_DIR_.$name.'/'.$name.'.php') || $key == 'update')
@@ -706,26 +709,51 @@ class AdminModulesControllerCore extends AdminController
 						);
 
 						foreach ($filesList as $f)
+						{
 							if (file_exists(_PS_ROOT_DIR_.$f['file']))
 							{
 								$file = $f['file'];
 								$content = Tools::file_get_contents(_PS_ROOT_DIR_.$file);
 								if ($xml = @simplexml_load_string($content, null, LIBXML_NOCDATA))
 									foreach ($xml->module as $modaddons)
-										if ($name == $modaddons->name && isset($modaddons->id) && ($this->logged_on_addons || $f['loggedOnAddons'] == 0))
+									{
+										if ($name == $modaddons->name)
 										{
-											$download_ok = false;
-											if ($f['loggedOnAddons'] == 0 && file_put_contents(_PS_MODULE_DIR_.$modaddons->name.'.zip', Tools::addonsRequest('module', array('id_module' => pSQL($modaddons->id)))))
-													$download_ok = true;
-											elseif ($f['loggedOnAddons'] == 1 && $this->logged_on_addons && file_put_contents(_PS_MODULE_DIR_.$modaddons->name.'.zip', Tools::addonsRequest('module', array('id_module' => pSQL($modaddons->id), 'username_addons' => pSQL(trim($this->context->cookie->username_addons)), 'password_addons' => pSQL(trim($this->context->cookie->password_addons))))))
-													$download_ok = true;
-
-											if (!$download_ok)
-												$this->errors[] = $this->l('Error on downloading the latest version');
-											elseif (!$this->extractArchive(_PS_MODULE_DIR_.$modaddons->name.'.zip', false))
-												$this->errors[] = $this->l(sprintf("Module %s can't be upgraded: ", $modaddons->name));
+											$module_to_update[$name]['id'] = $modaddons->id;
+											$module_to_update[$name]['displayName'] = $modaddons->displayName;
+											$module_to_update[$name]['need_loggedOnAddons'] = $f['loggedOnAddons'];
 										}
+									}
 							}
+
+						}
+
+						$module_upgraded = array();
+						foreach ($module_to_update as $name => $attr)
+						{
+							if (is_null($attr) && $this->logged_on_addons == 0)
+								$this->errors[] = sprintf(Tools::displayError('Please log in to PrestaShop Addons to check available updates for %s'), '<strong>'.$name.'</strong>');
+							elseif ($attr['need_loggedOnAddons'] == 1 && $this->logged_on_addons == 0)
+								$this->errors[] = sprintf(Tools::displayError('Please log in to PrestaShop Addons to update your module %s'), '<strong>'.$name.'</strong>');
+							elseif (!is_null($attr['id']))
+							{
+								$download_ok = false;
+								if ($attr['need_loggedOnAddons'] == 0 && file_put_contents(_PS_MODULE_DIR_.$name.'.zip', Tools::addonsRequest('module', array('id_module' => pSQL($attr['id'])))))
+									$download_ok = true;
+								elseif ($attr['need_loggedOnAddons'] == 1 && $this->logged_on_addons && file_put_contents(_PS_MODULE_DIR_.$name.'.zip', Tools::addonsRequest('module', array('id_module' => pSQL($attr['id']), 'username_addons' => pSQL(trim($this->context->cookie->username_addons)), 'password_addons' => pSQL(trim($this->context->cookie->password_addons))))))
+									$download_ok = true;
+
+								if (!$download_ok)
+									$this->errors[] = sprintf(Tools::displayError("Module %s can't be upgraded: Error on downloading the latest version"), '<strong>'.$attr['displayName'].'</strong>');
+								elseif (!$this->extractArchive(_PS_MODULE_DIR_.$name.'.zip', false))
+									$this->errors[] = $this->l(sprintf("Module %s can't be upgraded: Error on extracting the latest version", '<strong>'.$attr['displayName'].'</strong>'));
+								else
+									$module_upgraded[] = $name;
+							}
+							else
+								$this->errors[] = sprintf(Tools::displayError("Module %s can't be upgraded. Please make sure you are logged in to the PrestaShop Addons account that purchased the module."), '<strong>'.$name.'</strong>');
+						}
+						$module_upgraded = implode('|', $module_upgraded);
 					}
 
 					if (count($this->errors))
@@ -734,6 +762,8 @@ class AdminModulesControllerCore extends AdminController
 					// Check potential error
 					if (!($module = Module::getInstanceByName(urldecode($name))))
 						$this->errors[] = $this->l('Module not found');
+					elseif (defined('_PS_HOST_MODE_') && in_array($module->name, Module::$hosted_modules_blacklist))
+						$this->errors[] = Tools::displayError('You do not have permission to access this module.');
 					elseif ($key == 'install' && $this->tabAccess['add'] !== '1')
 						$this->errors[] = Tools::displayError('You do not have permission to install this module.');
 					elseif ($key == 'delete' && ($this->tabAccess['delete'] !== '1' || !$module->getPermission('configure')))
@@ -751,8 +781,10 @@ class AdminModulesControllerCore extends AdminController
 						// If we install a module, force temporary global context for multishop
 						if (Shop::isFeatureActive() && Shop::getContext() != Shop::CONTEXT_ALL && $method != 'getContent')
 						{
+							$shop_id = (int)Context::getContext()->shop->id;
 							Context::getContext()->tmpOldShop = clone(Context::getContext()->shop);
-							Context::getContext()->shop = new Shop();
+							if ($shop_id)
+								Context::getContext()->shop = new Shop($shop_id);
 						}
 
 						//retrocompatibility
@@ -927,7 +959,9 @@ class AdminModulesControllerCore extends AdminController
 				}
 			}
 
-			if (isset($modules_list_save))
+			if (isset($module_upgraded) && $module_upgraded != '')
+				Tools::redirectAdmin(self::$currentIndex.'&token='.$this->token.'&updated=1&module_name='.$module_upgraded);
+			elseif (isset($modules_list_save))
 				Tools::redirectAdmin(self::$currentIndex.'&token='.$this->token.'&updated=1&module_name='.$modules_list_save);
 			elseif (isset($module))
 				Tools::redirectAdmin(self::$currentIndex.'&token='.$this->token.$updated.'&tab_module='.$module->tab.'&module_name='.$module->name.'&anchor='.ucfirst($module->name).(isset($modules_list_save) ? '&modules_list='.$modules_list_save : ''));
@@ -1237,9 +1271,6 @@ class AdminModulesControllerCore extends AdminController
 			'modal_content' => $modal_content
 		);
 
-		$this->context->smarty->assign(array(
-			'catalog_link' => $this->context->link->getAdminLink('AdminAddonsCatalog'),
-		));
 		$modal_content = $this->context->smarty->fetch('controllers/modules/modal_not_trusted.tpl');
 
 		$this->modals[] = array(

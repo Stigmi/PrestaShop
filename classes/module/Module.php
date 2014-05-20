@@ -166,6 +166,8 @@ abstract class ModuleCore
 	const CACHE_FILE_TRUSTED_MODULES_LIST = '/config/xml/trusted_modules_list.xml';
 	const CACHE_FILE_UNTRUSTED_MODULES_LIST = '/config/xml/untrusted_modules_list.xml';
 
+	public static $hosted_modules_blacklist = array('autoupgrade');
+
 	/**
 	 * Constructor
 	 *
@@ -1386,8 +1388,10 @@ abstract class ModuleCore
 					}
 			}
 
-		foreach ($module_list as &$module)
-			if (isset($modules_installed[$module->name]))
+		foreach ($module_list as $key => &$module)
+			if (defined('_PS_HOST_MODE_') && in_array($module->name, self::$hosted_modules_blacklist))
+				unset($module_list[$key]);
+			elseif (isset($modules_installed[$module->name]))
 			{
 				$module->installed = true;
 				$module->database_version = $modules_installed[$module->name]['version'];
@@ -1439,6 +1443,7 @@ abstract class ModuleCore
 				$module_list[] = $name;
 			}
 		}
+
 		return $module_list;
 	}
 
@@ -1545,7 +1550,6 @@ abstract class ModuleCore
 	 */
 	public static function generateTrustedXml()
 	{
-
 		$modules_on_disk = Module::getModulesDirOnDisk();
 		$trusted   = array();
 		$untrusted = array();
@@ -1566,19 +1570,14 @@ abstract class ModuleCore
 					$trusted[] = (string)$modaddons->name;
 		}
 
-		$themes = Theme::getAvailable(true);
-		foreach ($themes as $theme)
-			if ($theme != 'default-bootstrap')
+		foreach (glob(_PS_ROOT_DIR_.'/config/xml/themes/*.xml') as $theme_xml)
+			if(file_exists($theme_xml))
 			{
-				$theme_xml = _PS_ROOT_DIR_.'/config/xml/themes/'.$theme.'.xml';
-				if(file_exists($theme_xml))
-				{
-					$content  = Tools::file_get_contents($theme_xml);
-					$xml = @simplexml_load_string($content, null, LIBXML_NOCDATA);
-					foreach ($xml->modules->module as $modaddons)
-						if((string)$modaddons['action'] == 'install')
-							$trusted[] = (string)$modaddons['name'];
-				}
+				$content  = Tools::file_get_contents($theme_xml);
+				$xml = @simplexml_load_string($content, null, LIBXML_NOCDATA);
+				foreach ($xml->modules->module as $modaddons)
+					if((string)$modaddons['action'] == 'install')
+						$trusted[] = (string)$modaddons['name'];
 			}
 
 		foreach ($modules_on_disk as $name)
@@ -1633,7 +1632,7 @@ abstract class ModuleCore
 	{
 		$obj = Module::getInstanceByName($module_name);
 
-		if (!Validate::isLoadedObject($obj))
+		if (!is_object($obj))
 			return false;
 		elseif ($obj->module_key === '')
 			return false;
@@ -1644,7 +1643,6 @@ abstract class ModuleCore
 				'module_key' => $obj->module_key,
 			);
 			$xml = Tools::addonsRequest('check_module', $params);
-
 			return (stristr($xml, 'success'));
 		}
 	}

@@ -255,6 +255,39 @@ class AdminPaymentControllerCore extends AdminController
 		return parent::renderView();
 	}
 
+	public function renderModulesList($panel_title = NULL)
+	{
+		parent::renderModulesList($panel_title);
+
+		if ($this->getModulesList($this->filter_modules_list))
+		{
+			$active_list = array();
+			foreach ($this->modules_list as $key => $module)
+			{
+				if ($module->active)
+					$active_list[] = $module; 
+				else
+					$unactive_list[] = $module; 
+			}
+
+			$helper = new Helper();
+			$fetch = '';
+
+			if (isset($active_list))
+			{
+				$this->context->smarty->assign('panel_title', $this->l('Active payment'));
+				$fetch = $helper->renderModulesList($active_list);
+			}
+
+			$this->context->smarty->assign(array(
+				'panel_title' => $this->l('Recommended payment gateways'),
+				'view_all' => true
+			));
+			$fetch .= $helper->renderModulesList($unactive_list);
+			return $fetch;
+		}
+	}
+
 	public function ajaxProcessGetModuleQuickView()
 	{
 		$modules = Module::getModulesOnDisk();
@@ -280,6 +313,8 @@ class AdminPaymentControllerCore extends AdminController
 			'is_addons_partner' => (isset($module->type) && ($module->type == 'addonsPartner' || $module->type == 'addonsNative')),
 			'url' => $url
 		));
+		// Fetch the translations in the right place - they are not defined by our current controller!
+		Context::getContext()->override_controller_name_for_translations = 'AdminModules';
 		$this->smartyOutputContent('controllers/modules/quickview.tpl');
 		die(1);
 	}

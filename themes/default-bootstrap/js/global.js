@@ -175,6 +175,9 @@ function quick_view()
 function bindGrid()
 {
 	var view = $.totalStorage('display');
+	
+	if (!view && (typeof displayList != 'undefined') && displayList)
+		view = 'list';
 
 	if (view && view != 'grid')
 		display(view);
@@ -354,7 +357,6 @@ function resizeCatimg()
 		var calc = Math.round(ratio * parseInt(div.outerWidth(false)));
 		div.css('min-height', calc);
 	});
-
 	if (div.length)
-		image.src = div.css('background-image').replace(/url\(|\)$/ig, '');
+		image.src = div.css('background-image').replace(/url\("?|"?\)$/ig, '');
 }

@@ -1167,7 +1167,7 @@ class AdminTranslationsControllerCore extends AdminController
 					if ($type_file == 'php')
 						$regex = '/this->l\((\')'._PS_TRANS_PATTERN_.'\'[\)|\,]/U';
 					else if ($type_file == 'specific')
-						$regex = '/Translate::getAdminTranslation\((\')'._PS_TRANS_PATTERN_.'\'\)/U';
+						$regex = '/Translate::getAdminTranslation\((\')'._PS_TRANS_PATTERN_.'\'(?:,.*)*\)/U';
 					else
 						$regex = '/\{l\s*s\s*=([\'\"])'._PS_TRANS_PATTERN_.'\1(\s*sprintf=.*)?(\s*js=1)?(\s*slashes=1)?.*\}/U';
 				break;
@@ -1569,7 +1569,7 @@ class AdminTranslationsControllerCore extends AdminController
 					{
 						$module_name = substr($mail_name, 0, $module_name_pipe_pos);
 						if (!Validate::isModuleName($module_name))
-							throw new PrestaShopException(sprinf(Tools::displayError('Invalid module name "%s"'), Tools::safeOutput($module_name)));
+							throw new PrestaShopException(sprintf(Tools::displayError('Invalid module name "%s"'), Tools::safeOutput($module_name)));
 						$mail_name = substr($mail_name, $module_name_pipe_pos + 1);
 						if (!Validate::isTplName($mail_name))
 							throw new PrestaShopException(sprintf(Tools::displayError('Invalid mail name "%s"'), Tools::safeOutput($mail_name)));
@@ -1905,7 +1905,7 @@ class AdminTranslationsControllerCore extends AdminController
 
 					// Adding list, form, option in Helper Translations
 					$list_prefix_key = array('AdminHelpers', 'AdminList', 'AdminView', 'AdminOptions', 'AdminForm',
-						'AdminCalendar', 'AdminTree', 'AdminUploader', 'AdminDataviz', 'AdminKpi', 'AdminModule_list');
+						'AdminCalendar', 'AdminTree', 'AdminUploader', 'AdminDataviz', 'AdminKpi', 'AdminModule_list', 'AdminModulesList');
 					if (in_array($prefix_key, $list_prefix_key))
 						$prefix_key = 'Helper';
 

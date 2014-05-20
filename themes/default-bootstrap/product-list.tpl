@@ -64,11 +64,15 @@
 									<span itemprop="price" class="price product-price">
 										{if !$priceDisplay}{convertPrice price=$product.price}{else}{convertPrice price=$product.price_tax_exc}{/if}
 									</span>
+									{* eu-legal: Additional Price Information *}
+									{hook h="displayProductPriceBlock" id_product=$product.id_product type="price"}
 									<meta itemprop="priceCurrency" content="{$currency->iso_code}" />
 									{if isset($product.specific_prices) && $product.specific_prices && isset($product.specific_prices.reduction) && $product.specific_prices.reduction > 0}
 										<span class="old-price product-price">
 											{displayWtPrice p=$product.price_without_reduction}
 										</span>
+										{* eu-legal: Additional Price Information *}
+										{hook h="displayProductPriceBlock" id_product=$product.id_product type="old_price"}
 										{if $product.specific_prices.reduction_type == 'percentage'}
 											<span class="price-percent-reduction">-{$product.specific_prices.reduction * 100}%</span>
 										{/if}
@@ -105,11 +109,15 @@
 							<span itemprop="price" class="price product-price">
 								{if !$priceDisplay}{convertPrice price=$product.price}{else}{convertPrice price=$product.price_tax_exc}{/if}
 							</span>
+							{* eu-legal: Additional Price Information *}
+							{hook h="displayProductPriceBlock" id_product=$product.id_product type="price"}
 							<meta itemprop="priceCurrency" content="{$currency->iso_code}" />
 							{if isset($product.specific_prices) && $product.specific_prices && isset($product.specific_prices.reduction) && $product.specific_prices.reduction > 0}
 								<span class="old-price product-price">
 									{displayWtPrice p=$product.price_without_reduction}
 								</span>
+								{* eu-legal: Additional Price Information *}
+								{hook h="displayProductPriceBlock" id_product=$product.id_product type="old_price"}
 								{if $product.specific_prices.reduction_type == 'percentage'}
 									<span class="price-percent-reduction">-{$product.specific_prices.reduction * 100}%</span>
 								{/if}
@@ -128,7 +136,7 @@
 									<a class="button ajax_add_to_cart_button btn btn-default" href="{$link->getPageLink('cart',false, NULL, 'add=1&amp;id_product={$product.id_product|intval}', false)|escape:'html':'UTF-8'}" rel="nofollow" title="{l s='Add to cart'}" data-id-product="{$product.id_product|intval}">
 										<span>{l s='Add to cart'}</span>
 									</a>
-								{/if}						
+								{/if}
 							{else}
 								<span class="button ajax_add_to_cart_button btn btn-default disabled">
 									<span>{l s='Add to cart'}</span>
@@ -157,8 +165,8 @@
 						{if isset($product.available_for_order) && $product.available_for_order && !isset($restricted_country_mode)}
 							<span itemprop="offers" itemscope itemtype="http://schema.org/Offer" class="availability">
 								{if ($product.allow_oosp || $product.quantity > 0)}
-									<span class="{if $product.quantity <= 0}out-of-stock{else}available-now{/if}">
-										<link itemprop="availability" href="http://schema.org/InStock" />{if $product.quantity <= 0}{if $product.allow_oosp}{$product.available_later}{else}{l s='Out of stock'}{/if}{else}{if isset($product.available_now) && $product.available_now}{$product.available_now}{else}{l s='In Stock'}{/if}{/if}
+									<span class="{if $product.quantity <= 0 && !$product.allow_oosp}out-of-stock{else}available-now{/if}">
+										<link itemprop="availability" href="http://schema.org/InStock" />{if $product.quantity <= 0}{if $product.allow_oosp}{if isset($product.available_later) && $product.available_later}{$product.available_later}{else}{l s='In Stock'}{/if}{else}{l s='Out of stock'}{/if}{else}{if isset($product.available_now) && $product.available_now}{$product.available_now}{else}{l s='In Stock'}{/if}{/if}
 									</span>
 								{elseif (isset($product.quantity_all_versions) && $product.quantity_all_versions > 0)}
 									<span class="available-dif">
@@ -170,6 +178,8 @@
 									</span>
 								{/if}
 							</span>
+							{* eu-legal: Product Availability *}
+							{hook h="displayProductAvailability" id_product=$product.id_product}
 						{/if}
 					{/if}
 				</div>

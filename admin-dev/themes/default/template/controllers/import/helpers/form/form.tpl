@@ -22,14 +22,12 @@
 *  @license    http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *  International Registered Trademark & Property of PrestaShop SA
 *}
-
 <div class="leadin">{block name="leadin"}{/block}</div>
 {if $module_confirmation}
-<div class="module_confirmation conf confirm">
+<div class="alert alert-success clearfix">
 	{l s='Your .CSV file has been successfully imported into your shop. Don\'t forget to re-build the products\' search index.'}
 </div>
 {/if}
-
 <div class="row">
 	<div class="col-lg-8">
 		{* Import fieldset *}
@@ -267,8 +265,8 @@
 				</div>
 				<div class="form-group">
 					<label for="forceIDs" class="control-label col-lg-4">
-						<span data-toggle="tooltip" class="label-tooltip" data-original-title="{l s='If you enable this option, your imported products\' ID number will be used as-is. If you do not enable this option, the imported ID number will be ignored, and PrestaShop will instead create auto-incremented ID numbers for all imported products.'}">
-							{l s='Force all ID'} 
+						<span data-toggle="tooltip" class="label-tooltip" data-original-title="{l s='If you enable this option, your imported items\' ID number will be used as-is. If you do not enable this option, the imported ID number will be ignored, and PrestaShop will instead create auto-incremented ID numbers for all the imported items.'}">
+							{l s='Force all ID numbers'} 
 						</span>
 					</label>
 					<div class="col-lg-8">

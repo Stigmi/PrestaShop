@@ -602,7 +602,7 @@ class AdminImportControllerCore extends AdminController
 
 		$this->tpl_form_vars = array(
 			'post_max_size' => (int)$bytes,
-			'module_confirmation' => (Tools::getValue('import')) && (isset($this->warnings) && !count($this->warnings)),
+			'module_confirmation' => Tools::isSubmit('import') && (isset($this->warnings) && !count($this->warnings)),
 			'path_import' => AdminImportController::getPath(),
 			'entities' => $this->entities,
 			'entity_selected' => $entity_selected,
@@ -926,9 +926,6 @@ class AdminImportControllerCore extends AdminController
 		if (is_array(self::$column_mask))
 			foreach (self::$column_mask as $type => $nb)
 				$res[$type] = isset($row[$nb]) ? $row[$nb] : null;
-
-		if (Tools::getValue('forceIds')) // if you choose to force table before import the column id is removed from the CSV file.
-			unset($res['id']);
 
 		return $res;
 	}

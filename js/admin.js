@@ -733,6 +733,26 @@ function showNoticeMessage(msg) {
 
 $(document).ready(function()
 {
+	if (typeof tabs != 'undefined')
+	{
+		$.each(tabs, function(index) {
+			$('#'+unique_field_id+'fieldset_'+index+' .form-wrapper').prepend('<div class="tab-content panel" />');
+			$('#'+unique_field_id+'fieldset_'+index+' .form-wrapper').prepend('<ul class="nav nav-tabs" />');
+			$.each(tabs[index], function(key, value) {
+				// Move every form-group into the correct .tab-content > .tab-pane
+				$('#'+unique_field_id+'fieldset_'+index+' .tab-content').append('<div id="'+key+'" class="tab-pane" />');
+				var elemts = $('#'+unique_field_id+'fieldset_'+index).find("[data-tab-id='" + key + "']");
+				$(elemts).appendTo('#'+key);
+				// Add the item to the .nav-tabs
+				if (elemts.length != 0)
+					$('#'+unique_field_id+'fieldset_'+index+' .nav-tabs').append('<li><a href="#'+key+'" data-toggle="tab">'+value+'</a></li>');
+			});
+			// Activate the first tab
+			$('#'+unique_field_id+'fieldset_'+index+' .tab-content div').first().addClass('active');
+			$('#'+unique_field_id+'fieldset_'+index+' .nav-tabs li').first().addClass('active');
+		});
+	}
+
 	$('select.chosen').each(function(k, item){
 		$(item).chosen({disable_search_threshold: 10});
 	});
@@ -886,9 +906,11 @@ $(document).ready(function()
 		e.preventDefault();
 		var moduleName = $(this).data('module-name');
 		var moduleLink = $(this).data('link');
+		var addonsSearchLink = 'http://addons.prestashop.com/en/search?search_query='+encodeURIComponent(moduleName)+'&utm_source=back-office&utm_medium=addons-certified&utm_campaign=back-office-'+iso_user.toUpperCase();
 
 		$('.modal .module-name-placeholder').text(moduleName);
 		$('.modal #proceed-install-anyway').attr('href', moduleLink);
+		$('.modal .catalog-link').attr('href', addonsSearchLink);
 	});
 
 	// if count errors
@@ -1188,11 +1210,10 @@ function bindAddonsButtons()
 		{
 			resAjax = $.ajax({
 				type:"POST",
-				url : ajaxCurrentIndex,
+				url : admin_modules_link,
 				async: true,
 				data : {
 					ajax : "1",
-					token : token,
 					controller : "AdminModules",
 					action : "logOnAddonsWebservices",
 					username_addons : username_addons,
@@ -1206,7 +1227,7 @@ function bindAddonsButtons()
 					{
 						$('#addons_loading').html('');
 						$('#addons_login_div').fadeOut();
-						window.location.href = currentIndexWithToken + '&conf=32';
+						window.location.href = currentIndex + '&conf=32' + '&token=' + token;
 					}
 					else
 						$('#addons_loading').html(errorLogin);
@@ -1224,11 +1245,10 @@ function bindAddonsButtons()
 		{
 			resAjax = $.ajax({
 				type:"POST",
-				url : ajaxCurrentIndex,
+				url : admin_modules_link,
 				async: true,
 				data : {
 					ajax : "1",
-					token : token,
 					controller : "AdminModules",
 					action : "logOutAddonsWebservices"
 				},
@@ -1240,7 +1260,7 @@ function bindAddonsButtons()
 					{
 						$('#addons_loading').html('');
 						$('#addons_login_div').fadeOut();
-						window.location.href = currentIndexWithToken;
+						window.location.href = currentIndex + '&token=' + token;
 					}
 					else
 						$('#addons_loading').html(errorLogin);
